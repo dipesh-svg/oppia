@@ -22,6 +22,7 @@ import testConstants from '../common/test-constants';
 import {showMessage} from '../common/show-message';
 
 const adminPageRolesTab = testConstants.URLs.AdminPageRolesTab;
+const adminPageActivitiesTab = testConstants.URLs.AdminPageActivitiesTab;
 
 const topicManagerRole = testConstants.Roles.TOPIC_MANAGER;
 
@@ -44,6 +45,8 @@ const selectTopicForAssignmentSelector = '.e2e-test-select-topic';
 
 const justifyContentDiv = 'div.justify-content-between';
 const userRoleDescriptionSelector = '.oppia-user-role-description';
+
+const generateBlogPostButton = '.e2e-test-generate-blog-post';
 
 export class SuperAdmin extends LoggedInUser {
   /**
@@ -128,6 +131,37 @@ export class SuperAdmin extends LoggedInUser {
       }
     }
     throw new Error(`User does not have the "${role}" role!`);
+  }
+
+  /**
+   * Navigates to the Admin Page Activities Tab.
+   */
+  async navigateToAdminPageActivitiesTab(): Promise<void> {
+    await this.goto(adminPageActivitiesTab);
+    await this.waitForNetworkIdle();
+  }
+
+  /**
+   * Generates a dummy blog post.
+   */
+  async generateDummyBlogPost(): Promise<void> {
+    await this.navigateToAdminPageActivitiesTab();
+    await this.expectElementToBeVisible(generateBlogPostButton);
+    await this.clickOnElementWithSelector(generateBlogPostButton);
+
+    await this.expectActionStatusMessageToBe(
+      'Dummy Blog Post generated successfully.'
+    );
+  }
+
+  /**
+   * Generates N dummy blog posts.
+   */
+  async generateDummyBlogPosts(numBlogs: number): Promise<void> {
+    await this.navigateToAdminPageActivitiesTab();
+    for (let i = 0; i < numBlogs; i++) {
+      await this.generateDummyBlogPost();
+    }
   }
 
   /**

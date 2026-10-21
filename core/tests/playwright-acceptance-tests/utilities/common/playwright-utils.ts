@@ -27,6 +27,7 @@ const backgroundBanner = '.oppia-background-image';
 const libraryBanner = '.e2e-test-library-banner';
 
 const toastMessageSelector = '.e2e-test-toast-message';
+const actionStatusMessageSelector = '.e2e-test-status-message';
 
 const VIEWPORT_WIDTH_BREAKPOINTS = testConstants.ViewportWidthBreakpoints;
 
@@ -605,6 +606,17 @@ export class BaseUser {
       );
       throw newError;
     }
+  }
+
+  /**
+   * Verifies that the action status message matches the expected message.
+   * @param {string} statusMessage - The expected status message to check for.
+   */
+  async expectActionStatusMessageToBe(statusMessage: string): Promise<void> {
+    await this.expectTextContentToContain(
+      actionStatusMessageSelector,
+      statusMessage
+    );
   }
 
   /**

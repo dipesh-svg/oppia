@@ -222,8 +222,10 @@ const blogPostTitleSelector = '.e2e-test-blog-post-tile-title';
 const blogPostAuthorSelector = '.e2e-test-username-visible';
 const blogPostPublishDateSelector = '.mobile-published-date';
 const blogPostTagContainerSelector = '.e2e-test-blog-tag-container';
+const blogPostTagSelector = '.e2e-test-blog-post-tag';
 const blogPaginationSelector = '.e2e-test-pagination';
 const blogPaginationNextSelector = '.e2e-test-pagination-next-button';
+const blogPaginationPrevSelector = '.e2e-test-pagination-prev-button';
 const postsDisplayHeadingSelector = '.posts-display-heading';
 
 // Selectors for the blog post page.
@@ -3013,6 +3015,34 @@ export class LoggedOutUser extends BaseUser {
   }
 
   /**
+   * Function to verify that the each blog post has a tag
+   * associated with it.
+   */
+  async expectBlogPostsToHaveAtLeastOneTag(): Promise<void> {
+    const allPostsHaveTags = await this.page
+      .locator(blogPostTagContainerSelector)
+      .evaluateAll(
+        (posts, tagSelector) =>
+          posts.every(post => post.querySelector(tagSelector) !== null),
+        blogPostTagSelector
+      );
+    if (!allPostsHaveTags) {
+      throw new Error('Not all blog posts have tags');
+    }
+  }
+
+  /**
+   * Function to check whether the pagination controls are visible.
+   */
+  async expectBlogPaginationControlsVisible(): Promise<void> {
+    try {
+      await this.expectElementToBeVisible(blogPaginationSelector);
+    } catch (error) {
+      throw new Error('Pagination controls not visible');
+    }
+  }
+
+  /**
    * Clicks the next button in the blog pagination controls.
    */
   async clickNextBlogPage(): Promise<void> {
@@ -3023,6 +3053,26 @@ export class LoggedOutUser extends BaseUser {
       .textContent();
 
     await this.clickOnElementWithSelector(blogPaginationNextSelector);
+
+    await expect(
+      this.page.locator(blogPostTitleSelector).first()
+    ).not.toHaveText(firstPostTitle ?? '');
+  }
+
+  /**
+   * Function to click the previous button in the pagination controls.
+   */
+  async clickPreviousBlogPage(): Promise<void> {
+    await this.expectElementToBeVisible(blogPostTitleSelector);
+    const firstPostTitle = await this.page
+      .locator(blogPostTitleSelector)
+      .first()
+      .textContent();
+    if ((await this.page.locator(blogPaginationPrevSelector).count()) === 0) {
+      return;
+    }
+
+    await this.clickOnElementWithSelector(blogPaginationPrevSelector);
 
     await expect(
       this.page.locator(blogPostTitleSelector).first()
