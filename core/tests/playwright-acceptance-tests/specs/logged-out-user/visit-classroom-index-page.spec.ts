@@ -42,40 +42,30 @@ test.describe('Logged-out User', function () {
       browser,
       [ROLES.CURRICULUM_ADMIN]
     );
-    await curriculumAdmin.createTopic(
-      'Test Topic 2',
-      'test-topic-two',
-      true
-    );
+    await curriculumAdmin.createTopic('Test Topic 2', 'test-topic-two', true);
     await curriculumAdmin.createTopic('Test Topic 1', 'test-topic-one');
   }, DEFAULT_SPEC_TIMEOUT_MSECS);
 
-  test(
-    'should be redirected to a 404 error page if no classrooms are present.',
-    async function () {
-      await loggedOutUser.navigateToClassroomsPage(false);
-      await loggedOutUser.expectToBeOnErrorPage(404);
-    }
-  );
+  test('should be redirected to a 404 error page if no classrooms are present.', async function () {
+    await loggedOutUser.navigateToClassroomsPage(false);
+    await loggedOutUser.expectToBeOnErrorPage(404);
+  });
 
-  test(
-    'should be redirected to a classroom page if we have 1 public classroom.',
-    async function () {
-      await curriculumAdmin.navigateToTopicsAndSkillsDashboardPageAsTopicManager();
-      await curriculumAdmin.createNewClassroom('Math', 'math');
-      await curriculumAdmin.updateClassroom(
-        'Math',
-        'Welcome to Math classroom!',
-        'This course covers basic algebra and trigonometry.',
-        'In this course, you will learn the following topics: algebra and trigonometry,'
-      );
-      await curriculumAdmin.addTopicToClassroom('Math', 'Test Topic 1');
-      await curriculumAdmin.publishClassroom('Math');
+  test('should be redirected to a classroom page if we have 1 public classroom.', async function () {
+    await curriculumAdmin.navigateToTopicsAndSkillsDashboardPageAsTopicManager();
+    await curriculumAdmin.createNewClassroom('Math', 'math');
+    await curriculumAdmin.updateClassroom(
+      'Math',
+      'Welcome to Math classroom!',
+      'This course covers basic algebra and trigonometry.',
+      'In this course, you will learn the following topics: algebra and trigonometry,'
+    );
+    await curriculumAdmin.addTopicToClassroom('Math', 'Test Topic 1');
+    await curriculumAdmin.publishClassroom('Math');
 
-      await loggedOutUser.navigateToClassroomsPage(false);
-      await loggedOutUser.expectToBeOnClassroomPage('Math');
-    }
-  );
+    await loggedOutUser.navigateToClassroomsPage(false);
+    await loggedOutUser.expectToBeOnClassroomPage('Math');
+  });
 
   test('should show classrooms page with classroom cards.', async function () {
     await curriculumAdmin.navigateToTopicsAndSkillsDashboardPageAsTopicManager();
