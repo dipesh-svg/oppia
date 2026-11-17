@@ -63,7 +63,7 @@ test.describe('Logged-out User', function () {
         'Math',
         'Welcome to Math classroom!',
         'This course covers basic algebra and trigonometry.',
-        'In this course, you will learn the following topics: algbera and trigonometry,'
+        'In this course, you will learn the following topics: algebra and trigonometry,'
       );
       await curriculumAdmin.addTopicToClassroom('Math', 'Test Topic 1');
       await curriculumAdmin.publishClassroom('Math');
