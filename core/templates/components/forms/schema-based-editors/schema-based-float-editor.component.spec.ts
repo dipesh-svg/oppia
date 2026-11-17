@@ -135,7 +135,7 @@ describe('Schema based float editor component', function () {
     expect(onChangeSpy).not.toHaveBeenCalled();
   });
 
-  it('should clear the displayed value when the model writes null or undefined', () => {
+  it('should clear empty model values and preserve the default value', () => {
     component.writeValue(null);
 
     expect(component.localValue).toBeNull();
@@ -143,7 +143,7 @@ describe('Schema based float editor component', function () {
 
     component.writeValue(undefined);
 
-    expect(component.localValue).toBeNull();
+    expect(component.localValue).toBe(0.0);
     expect(component.localStringValue).toBe('');
   });
 
