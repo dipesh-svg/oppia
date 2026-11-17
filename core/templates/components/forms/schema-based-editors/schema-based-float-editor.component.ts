@@ -94,7 +94,7 @@ export class SchemaBasedFloatEditorComponent
 
   // Implemented as a part of ControlValueAccessor interface.
   writeValue(value: number | null | undefined): void {
-    this.localValue = value;
+    this.localValue = value ?? null;
     this.localStringValue =
       value === null || value === undefined
         ? ''
