@@ -42,7 +42,11 @@ test.describe('Logged-out User', function () {
       browser,
       [ROLES.CURRICULUM_ADMIN]
     );
-    await curriculumAdmin.createTopic('Test Topic 2', 'test-topic-two');
+    await curriculumAdmin.createTopic(
+      'Test Topic 2',
+      'test-topic-two',
+      true
+    );
     await curriculumAdmin.createTopic('Test Topic 1', 'test-topic-one');
   }, DEFAULT_SPEC_TIMEOUT_MSECS);
 
