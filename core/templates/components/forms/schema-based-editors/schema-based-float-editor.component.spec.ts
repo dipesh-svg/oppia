@@ -143,7 +143,7 @@ describe('Schema based float editor component', function () {
 
     component.writeValue(undefined);
 
-    expect(component.localValue).toBeUndefined();
+    expect(component.localValue).toBeNull();
     expect(component.localStringValue).toBe('');
   });
 
