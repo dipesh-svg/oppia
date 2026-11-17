@@ -164,6 +164,7 @@ const pauseVoiceoverButton = '.e2e-test-pause-circle';
 
 // Classroom Page.
 const classroomContentHeadingSelector = '.e2e-test-classroom-content-heading';
+const classroomTileSelector = '.e2e-test-classroom-tile';
 const diagnosticTestPlayerSelector = 'oppia-diagnostic-test-player';
 const diagnosticTestBoxSelector = '.e2e-test-diagnostic-test-box';
 const diagnosticTestHeadingSelector = `${diagnosticTestBoxSelector} h4`;
@@ -1836,6 +1837,33 @@ export class LoggedOutUser extends BaseUser {
   }
 
   /**
+   * Checks that the expected classroom page is open.
+   * @param {string} classroomName - The expected classroom name.
+   */
+  async expectToBeOnClassroomPage(classroomName: string): Promise<void> {
+    await expect(this.page.locator(backToClassroomLinkSelector)).toHaveText(
+      classroomName,
+      {exact: true}
+    );
+    showMessage(`The ${classroomName} classroom name is visible.`);
+  }
+
+  /**
+   * Checks the number of classroom cards shown on the classrooms page.
+   * @param {number} classroomsCount - The expected number of classrooms.
+   */
+  async expectClassroomCountInClassroomsPageToBe(
+    classroomsCount: number
+  ): Promise<void> {
+    await expect(this.page.locator(classroomTileSelector)).toHaveCount(
+      classroomsCount
+    );
+    showMessage(
+      `${classroomsCount} classrooms are present on the classrooms page.`
+    );
+  }
+
+  /**
    * Function to verify that the user is on the login page.
    */
   async expectToBeOnLoginPage(): Promise<void> {
@@ -2217,6 +2245,14 @@ export class LoggedOutUser extends BaseUser {
     await this.clickOnElementWithSelector(selector);
 
     await this.expectElementToBeVisible(selector, false);
+  }
+
+  /**
+   * Function to navigate to the classrooms page.
+   * @param {boolean} verifyURL - Whether to verify the URL after navigation.
+   */
+  async navigateToClassroomsPage(verifyURL: boolean = true): Promise<void> {
+    await this.goto(classroomsPageUrl, verifyURL);
   }
 
   /**
