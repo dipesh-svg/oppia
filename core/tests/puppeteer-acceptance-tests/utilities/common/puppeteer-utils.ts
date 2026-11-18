@@ -1623,6 +1623,7 @@ export class BaseUser {
    * @param {string} selector - The selector of the element to get text from.
    * @param {boolean} visibility - Whether the element should be visible or not.
    * @param {Page} context - The page on which the selector should be verified.
+   * @param {number} timeout - The maximum time to wait, in milliseconds.
    */
   async expectElementToBeVisible(
     selector: string,
@@ -2500,6 +2501,7 @@ export class BaseUser {
    * @param title - The title of the modal.
    * @param action - The action to click on the button in the modal.
    * @param expectModalToClose - Whether to expect the modal to close after clicking the button.
+   * @param timeout - Maximum time to wait for the modal to close, in milliseconds.
    */
   async clickButtonInModal(
     title: string,
