@@ -878,6 +878,9 @@ TASKQUEUE_URL_PREFIX = '/task'
 TASK_URL_FEEDBACK_MESSAGE_EMAILS = (
     '%s/email/batchfeedbackmessageemailhandler' % TASKQUEUE_URL_PREFIX
 )
+TASK_URL_FEEDBACK_SUBMISSION_EMAILS = (
+    '%s/email/feedbacksubmissionemailhandler' % TASKQUEUE_URL_PREFIX
+)
 TASK_URL_FEEDBACK_STATUS_EMAILS = (
     '%s/email/feedbackthreadstatuschangeemailhandler' % TASKQUEUE_URL_PREFIX
 )
