@@ -1623,21 +1623,23 @@ export class BaseUser {
    * @param {string} selector - The selector of the element to get text from.
    * @param {boolean} visibility - Whether the element should be visible or not.
    * @param {Page} context - The page on which the selector should be verified.
+   * @param {number} timeout - The maximum time to wait, in milliseconds.
    */
   async expectElementToBeVisible(
     selector: string,
     visibility: boolean = true,
-    context: Page = this.page
+    context: Page = this.page,
+    timeout: number = 30000
   ): Promise<void> {
     if (visibility) {
-      await context.waitForSelector(selector, {visible: true});
+      await context.waitForSelector(selector, {visible: true, timeout: timeout});
     } else {
       await context.waitForFunction(
         (sel: string) => {
           const el = document.querySelector(sel);
           return !el || (el as HTMLElement).offsetParent === null;
         },
-        {},
+        {timeout: timeout},
         selector
       );
     }
@@ -2498,12 +2500,16 @@ export class BaseUser {
    * Clicks on the button in the modal with the given title and action.
    * @param title - The title of the modal.
    * @param action - The action to click on the button in the modal.
-   * @param expectModalToClose - Whether to expect the modal to close after clicking the button.
+   * @param expectModalToClose - Whether to expect the modal to close after
+   *   clicking the button.
+   * @param timeout - Maximum time to wait for the modal to close, in
+   *   milliseconds.
    */
   async clickButtonInModal(
     title: string,
     action: 'confirm' | 'cancel',
-    expectModalToClose: boolean = true
+    expectModalToClose: boolean = true,
+    timeout: number = 30000
   ): Promise<void> {
     await this.expectElementToBeVisible(commonModalTitleSelector);
     await this.expectTextContentToBe(commonModalTitleSelector, title);
@@ -2517,7 +2523,9 @@ export class BaseUser {
 
     await this.expectElementToBeVisible(
       currentActionBtnSelector,
-      !expectModalToClose
+      !expectModalToClose,
+      this.page,
+      timeout
     );
   }
 
