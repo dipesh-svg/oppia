@@ -19,7 +19,12 @@ from __future__ import annotations
 import urllib.parse
 
 from core import feconf, utils
-from core.domain import email_manager, exp_services, general_feedback_domain
+from core.domain import (
+    email_manager,
+    exp_services,
+    general_feedback_domain,
+    taskqueue_services,
+)
 from core.platform import models
 
 from typing import Dict, List, Optional, Tuple, Union, cast
@@ -255,7 +260,11 @@ def create_lesson_feedback(
     model = general_feedback_models.LessonFeedbackModel.get_by_id(feedback_id)
     feedback = _lesson_feedback_model_to_domain(model)
 
-    email_manager.send_feedback_submission_email(feedback)
+    taskqueue_services.enqueue_task(
+        feconf.TASK_URL_FEEDBACK_SUBMISSION_EMAILS,
+        {'feedback_id': feedback.id, 'feedback_type': 'lesson'},
+        0,
+    )
     return feedback
 
 
@@ -680,8 +689,36 @@ def create_platform_report(
     model = general_feedback_models.PlatformFeedbackModel.get_by_id(report_id)
     feedback = _platform_feedback_model_to_domain(model)
 
-    email_manager.send_feedback_submission_email(feedback)
+    taskqueue_services.enqueue_task(
+        feconf.TASK_URL_FEEDBACK_SUBMISSION_EMAILS,
+        {'feedback_id': feedback.id, 'feedback_type': 'platform'},
+        0,
+    )
     return feedback
+
+
+def send_feedback_submission_email_for_feedback(
+    feedback_id: str, feedback_type: str
+) -> None:
+    """Sends the notification email for a previously submitted feedback item.
+
+    Args:
+        feedback_id: str. The ID of the lesson feedback or platform report.
+        feedback_type: str. Either 'lesson' or 'platform'.
+
+    Raises:
+        ValueError. If feedback_type is not supported.
+    """
+    if feedback_type == 'lesson':
+        feedback = get_lesson_feedback(feedback_id)
+    elif feedback_type == 'platform':
+        feedback = get_platform_feedback(feedback_id)
+    else:
+        raise ValueError('Invalid feedback type: %s' % feedback_type)
+
+    # A feedback item may have been deleted before its notification task runs.
+    if feedback is not None:
+        email_manager.send_feedback_submission_email(feedback)
 
 
 def get_platform_feedback(
