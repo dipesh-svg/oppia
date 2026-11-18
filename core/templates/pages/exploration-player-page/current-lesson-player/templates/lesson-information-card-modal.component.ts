@@ -61,7 +61,9 @@ const EXPLORATION_STATUS_PRIVATE = 'private';
   templateUrl: './lesson-information-card-modal.component.html',
   styleUrls: ['./lesson-information-card-modal.component.css'],
 })
-export class LessonInformationCardModalComponent extends ConfirmOrCancelModal implements OnDestroy {
+export class LessonInformationCardModalComponent
+  extends ConfirmOrCancelModal
+  implements OnDestroy {
   // These properties below are initialized using Angular lifecycle hooks
   // where we need to do non-null assertion. For more information see
   // https://github.com/oppia/oppia/wiki/Guide-on-defining-types#ts-7-1
@@ -202,7 +204,8 @@ export class LessonInformationCardModalComponent extends ConfirmOrCancelModal im
   }
 
   private refreshCheckpointProgress(): void {
-    this.checkpointCount = this.checkpointProgressService.fetchCheckpointCount();
+    this.checkpointCount =
+      this.checkpointProgressService.fetchCheckpointCount();
     let completedCheckpointsCount =
       this.checkpointProgressService.getMostRecentlyReachedCheckpointIndex() -
       1;
