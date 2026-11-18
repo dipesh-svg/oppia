@@ -1710,6 +1710,10 @@ URLS.extend(
             tasks.UnsentFeedbackEmailHandler,
         ),
         get_redirect_route(
+            r'%s' % feconf.TASK_URL_FEEDBACK_SUBMISSION_EMAILS,
+            tasks.FeedbackSubmissionEmailHandler,
+        ),
+        get_redirect_route(
             r'%s'
             % (
                 feconf.TASK_URL_CONTRIBUTOR_DASHBOARD_ACHIEVEMENT_NOTIFICATION_EMAILS
