@@ -108,6 +108,7 @@ export class LessonInformationCardModalComponent extends ConfirmOrCancelModal {
     private userService: UserService,
     private windowRef: WindowRef,
     private explorationEngineService: ExplorationEngineService,
+    private checkpointProgressService: CheckpointProgressService,
     private playerTranscriptService: PlayerTranscriptService,
     private localStorageService: LocalStorageService,
     private progressUrlService: ProgressUrlService,
