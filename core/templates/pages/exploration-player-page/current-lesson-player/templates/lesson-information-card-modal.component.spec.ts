@@ -372,6 +372,7 @@ describe('Lesson Information card modal component', () => {
   });
 
   it('should refresh checkpoint progress after restoration completes', () => {
+    spyOn(checkpointProgressService, 'fetchCheckpointCount').and.returnValue(3);
     spyOn(
       checkpointProgressService,
       'getMostRecentlyReachedCheckpointIndex'
