@@ -41,6 +41,7 @@ import {WindowRef} from '../../../../services/contextual/window-ref.service';
 import {I18nLanguageCodeService} from '../../../../services/i18n-language-code.service';
 import {MockTranslatePipe} from '../../../../tests/unit-test-utils';
 import {ExplorationEngineService} from '../../services/exploration-engine.service';
+import {CheckpointProgressService} from '../../services/checkpoint-progress.service';
 import {PlayerTranscriptService} from '../../services/player-transcript.service';
 import {LessonInformationCardModalComponent} from './lesson-information-card-modal.component';
 import {SignInEventService} from 'services/sign-in-event.service';
@@ -156,6 +157,7 @@ describe('Lesson Information card modal component', () => {
   let ngbActiveModal: NgbActiveModal;
   let playerTranscriptService: PlayerTranscriptService;
   let explorationEngineService: ExplorationEngineService;
+  let checkpointProgressService: CheckpointProgressService;
   let explorationModeService: ExplorationModeService;
 
   let expId = 'expId';
@@ -249,6 +251,7 @@ describe('Lesson Information card modal component', () => {
     playerTranscriptService = TestBed.inject(PlayerTranscriptService);
     playerPositionService = TestBed.inject(PlayerPositionService);
     explorationEngineService = TestBed.inject(ExplorationEngineService);
+    checkpointProgressService = TestBed.inject(CheckpointProgressService);
     progressUrlService = TestBed.inject(ProgressUrlService);
     checkpointCelebrationUtilityService = TestBed.inject(
       CheckpointCelebrationUtilityService
@@ -362,6 +365,34 @@ describe('Lesson Information card modal component', () => {
       'completed',
       'completed',
       'completed',
+    ]);
+  });
+
+  it('should refresh checkpoint progress when the active card changes', () => {
+    componentInstance.checkpointCount = 3;
+    componentInstance.completedCheckpointsCount = 0;
+    spyOn(checkpointProgressService, 'fetchCheckpointCount').and.returnValue(3);
+    spyOn(
+      checkpointProgressService,
+      'getMostRecentlyReachedCheckpointIndex'
+    ).and.returnValue(2);
+    spyOn(playerPositionService, 'getDisplayedCardIndex').and.returnValue(0);
+
+    componentInstance.ngOnInit();
+
+    expect(componentInstance.checkpointStatusArray).toEqual([
+      'in-progress',
+      'incomplete',
+      'incomplete',
+    ]);
+
+    playerPositionService.onActiveCardChanged.emit();
+
+    expect(componentInstance.completedCheckpointsCount).toBe(1);
+    expect(componentInstance.checkpointStatusArray).toEqual([
+      'completed',
+      'in-progress',
+      'incomplete',
     ]);
   });
 
