@@ -37,6 +37,10 @@ const activeModalBackdropSelector = '.modal-backdrop, ngb-modal-window, .modal';
 const feedbackTableMySuggestionsLessonTitle =
   '.e2e-test-my-suggestions-lesson-title';
 
+// Feedback submission responses have taken nearly 60 seconds in CI. Allow
+// the modal to close after the request completes before continuing the test.
+const FEEDBACK_SUBMISSION_TIMEOUT_MSECS = 90000;
+
 describe('Logged-in User', function () {
   let loggedInLearner: LoggedInUser & LoggedOutUser;
   let releaseCoordinator: ReleaseCoordinator;
@@ -113,7 +117,9 @@ describe('Logged-in User', function () {
     showMessage('Sending feedback to the Lessons Team.');
     await loggedInLearner.clickButtonInModal(
       'Send Feedback to the Lessons Team',
-      'confirm'
+      'confirm',
+      true,
+      FEEDBACK_SUBMISSION_TIMEOUT_MSECS
     );
     await loggedInLearner.expectScreenshotToMatch(
       'sendALessonFeedbackModalAfterSubmittingFeedback',
@@ -309,7 +315,12 @@ describe('Logged-in User', function () {
       'This Question answer is still wrong, please recheck, Thanks.'
     );
     showMessage('Sending follow up note to the Lessons Team.');
-    await loggedInLearner.clickButtonInModal('Add a follow-up note', 'confirm');
+    await loggedInLearner.clickButtonInModal(
+      'Add a follow-up note',
+      'confirm',
+      true,
+      FEEDBACK_SUBMISSION_TIMEOUT_MSECS
+    );
     // The underlying my suggestions page returns to full opacity immediately,
     // bringing the student back to where they left off.
     await loggedInLearner.expectElementToBeVisible(
@@ -386,7 +397,12 @@ describe('Logged-in User', function () {
       __dirname
     );
     showMessage('Sending feedback report to the Lessons Team.');
-    await loggedInLearner.clickButtonInModal('Report an Issue', 'confirm');
+    await loggedInLearner.clickButtonInModal(
+      'Report an Issue',
+      'confirm',
+      true,
+      FEEDBACK_SUBMISSION_TIMEOUT_MSECS
+    );
     await loggedInLearner.expectToastMessage(
       'Thank you for your feedback! The team has received your report.'
     );
@@ -409,7 +425,12 @@ describe('Logged-in User', function () {
       __dirname
     );
     showMessage('Sending feedback report to the Lessons Team.');
-    await loggedInLearner.clickButtonInModal('Report an Issue', 'confirm');
+    await loggedInLearner.clickButtonInModal(
+      'Report an Issue',
+      'confirm',
+      true,
+      FEEDBACK_SUBMISSION_TIMEOUT_MSECS
+    );
     await loggedInLearner.expectToastMessage(
       'Thank you for your feedback! The team has received your report.'
     );
@@ -429,7 +450,12 @@ describe('Logged-in User', function () {
       __dirname
     );
     showMessage('Sending feedback report to the Lessons Team.');
-    await loggedInLearner.clickButtonInModal('Report an Issue', 'confirm');
+    await loggedInLearner.clickButtonInModal(
+      'Report an Issue',
+      'confirm',
+      true,
+      FEEDBACK_SUBMISSION_TIMEOUT_MSECS
+    );
     await loggedInLearner.expectToastMessage(
       'Thank you! Your report has been sent to the technical team.'
     );
@@ -448,7 +474,12 @@ describe('Logged-in User', function () {
       __dirname
     );
     showMessage('Sending feedback report to the Lessons Team.');
-    await loggedInLearner.clickButtonInModal('Report an Issue', 'confirm');
+    await loggedInLearner.clickButtonInModal(
+      'Report an Issue',
+      'confirm',
+      true,
+      FEEDBACK_SUBMISSION_TIMEOUT_MSECS
+    );
     await loggedInLearner.expectToastMessage(
       'Thank you! Your report has been sent to the technical team.'
     );
