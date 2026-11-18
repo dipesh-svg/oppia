@@ -23,6 +23,7 @@ from core.domain import (
     email_manager,
     general_feedback_domain,
     general_feedback_services,
+    taskqueue_services,
     user_services,
 )
 from core.platform import models
@@ -81,20 +82,22 @@ class GeneralFeedbackServicesTests(test_utils.GenericTestBase):
         }
 
     def test_create_lesson_feedback_returns_domain_object(self) -> None:
-        mock_send_feedback_email = mock.Mock()
-        send_feedback_email_swap = self.swap(
-            email_manager,
-            'send_feedback_submission_email',
-            mock_send_feedback_email,
+        mock_enqueue_task = mock.Mock()
+        enqueue_task_swap = self.swap(
+            taskqueue_services, 'enqueue_task', mock_enqueue_task
         )
-        with send_feedback_email_swap:
+        with enqueue_task_swap:
             feedback = general_feedback_services.create_lesson_feedback(
                 author_id=self.user.user_id,
                 feedback_text='This lesson helped.',
                 lesson_metadata=self.get_lesson_metadata(),
             )
 
-        mock_send_feedback_email.assert_called_once_with(feedback)
+        mock_enqueue_task.assert_called_once_with(
+            feconf.TASK_URL_FEEDBACK_SUBMISSION_EMAILS,
+            {'feedback_id': feedback.id, 'feedback_type': 'lesson'},
+            0,
+        )
 
         self.assertEqual(feedback.author_id, self.user.user_id)
         self.assertEqual(feedback.feedback_text, 'This lesson helped.')
@@ -326,13 +329,11 @@ class GeneralFeedbackServicesTests(test_utils.GenericTestBase):
     def test_create_platform_report_for_lesson_routes_to_creator(
         self,
     ) -> None:
-        mock_send_feedback_email = mock.Mock()
-        send_feedback_email_swap = self.swap(
-            email_manager,
-            'send_feedback_submission_email',
-            mock_send_feedback_email,
+        mock_enqueue_task = mock.Mock()
+        enqueue_task_swap = self.swap(
+            taskqueue_services, 'enqueue_task', mock_enqueue_task
         )
-        with send_feedback_email_swap:
+        with enqueue_task_swap:
             report = general_feedback_services.create_platform_report(
                 feedback_text='There is a typo.',
                 source='lesson',
@@ -345,7 +346,11 @@ class GeneralFeedbackServicesTests(test_utils.GenericTestBase):
                 page_url='https://example.com',
             )
 
-        mock_send_feedback_email.assert_called_once_with(report)
+        mock_enqueue_task.assert_called_once_with(
+            feconf.TASK_URL_FEEDBACK_SUBMISSION_EMAILS,
+            {'feedback_id': report.id, 'feedback_type': 'platform'},
+            0,
+        )
 
         self.assertEqual(report.report_message, 'There is a typo.')
         self.assertEqual(report.source, feconf.SOURCE_LESSON)
@@ -357,6 +362,67 @@ class GeneralFeedbackServicesTests(test_utils.GenericTestBase):
         self.assertEqual(report.category, feconf.CATEGORY_TYPO)
         self.assertEqual(report.lesson_metadata, self.get_lesson_metadata())
         self.assertFalse(report.include_technical_logs)
+
+    def test_send_feedback_submission_email_for_lesson_feedback(self) -> None:
+        with self.swap(taskqueue_services, 'enqueue_task', mock.Mock()):
+            feedback = general_feedback_services.create_lesson_feedback(
+                author_id=self.user.user_id,
+                feedback_text='This lesson helped.',
+                lesson_metadata=self.get_lesson_metadata(),
+            )
+        mock_send_email = mock.Mock()
+        with self.swap(
+            email_manager, 'send_feedback_submission_email', mock_send_email
+        ):
+            general_feedback_services.send_feedback_submission_email_for_feedback(
+                feedback.id, 'lesson'
+            )
+
+        mock_send_email.assert_called_once()
+        self.assertEqual(mock_send_email.call_args.args[0].id, feedback.id)
+
+    def test_send_feedback_submission_email_for_platform_feedback(self) -> None:
+        with self.swap(taskqueue_services, 'enqueue_task', mock.Mock()):
+            report = general_feedback_services.create_platform_report(
+                feedback_text='There is a typo.',
+                source='lesson',
+                category=feconf.CATEGORY_TYPO,
+                lesson_metadata=self.get_lesson_metadata(),
+                session_info=None,
+                screenshot_filename=None,
+                screenshot_entity_id=None,
+                include_technical_logs=False,
+                page_url='https://example.com',
+            )
+        mock_send_email = mock.Mock()
+        with self.swap(
+            email_manager, 'send_feedback_submission_email', mock_send_email
+        ):
+            general_feedback_services.send_feedback_submission_email_for_feedback(
+                report.id, 'platform'
+            )
+
+        mock_send_email.assert_called_once()
+        self.assertEqual(mock_send_email.call_args.args[0].id, report.id)
+
+    def test_send_feedback_submission_email_rejects_invalid_feedback_type(
+        self,
+    ) -> None:
+        with self.assertRaisesRegex(ValueError, 'Invalid feedback type'):
+            general_feedback_services.send_feedback_submission_email_for_feedback(
+                'feedback_id', 'invalid'
+            )
+
+    def test_send_feedback_submission_email_skips_deleted_feedback(self) -> None:
+        mock_send_email = mock.Mock()
+        with self.swap(
+            email_manager, 'send_feedback_submission_email', mock_send_email
+        ):
+            general_feedback_services.send_feedback_submission_email_for_feedback(
+                'missing_feedback_id', 'lesson'
+            )
+
+        mock_send_email.assert_not_called()
 
     def test_create_platform_report_for_site_maps_source_to_app(self) -> None:
         report = general_feedback_services.create_platform_report(
