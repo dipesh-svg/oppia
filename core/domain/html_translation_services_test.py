@@ -354,3 +354,98 @@ class HtmlTranslationServicesTests(test_utils.GenericTestBase):
             source
         )
         self.assertIn('translate="no"', protected)
+
+
+    def test_postprocess_html_with_link_nested_in_collapsible(
+        self,
+    ) -> None:
+        soup = bs4.BeautifulSoup('', 'html.parser')
+        link = soup.new_tag('oppia-noninteractive-link')
+        link['url-with-value'] = json.dumps('https://oppia.org')
+        link['text-with-value'] = json.dumps('Learn more')
+        collapsible = soup.new_tag('oppia-noninteractive-collapsible')
+        collapsible['heading-with-value'] = json.dumps('Hint')
+        collapsible['content-with-value'] = json.dumps(f'<p>{link}</p>')
+
+        protected = html_translation_services.preprocess_html_for_translation(
+            str(collapsible)
+        )
+        restored = html_translation_services.postprocess_translated_html(
+            protected
+        )
+
+        restored_soup = bs4.BeautifulSoup(restored, 'html.parser')
+        restored_collapsible = restored_soup.find(
+            'oppia-noninteractive-collapsible'
+        )
+        self.assertIsNotNone(restored_collapsible)
+        nested_content = restored_collapsible.get('content-with-value')
+        nested_soup = bs4.BeautifulSoup(nested_content, 'html.parser')
+        restored_link = nested_soup.find('oppia-noninteractive-link')
+        self.assertIsNotNone(restored_link)
+        self.assertEqual(
+            restored_link.get('text-with-value'), json.dumps('Learn more')
+        )
+
+    def test_postprocess_html_with_link_nested_in_tabs(self) -> None:
+        soup = bs4.BeautifulSoup('', 'html.parser')
+        link = soup.new_tag('oppia-noninteractive-link')
+        link['url-with-value'] = json.dumps('https://oppia.org')
+        link['text-with-value'] = json.dumps('Open lesson')
+        tabs = soup.new_tag('oppia-noninteractive-tabs')
+        tabs['tab_contents-with-value'] = json.dumps(
+            [{'title': 'Hint', 'content': f'<p>{link}</p>'}]
+        )
+
+        protected = html_translation_services.preprocess_html_for_translation(
+            str(tabs)
+        )
+        restored = html_translation_services.postprocess_translated_html(
+            protected
+        )
+
+        restored_soup = bs4.BeautifulSoup(restored, 'html.parser')
+        restored_tabs = restored_soup.find('oppia-noninteractive-tabs')
+        self.assertIsNotNone(restored_tabs)
+        tabs_data = json.loads(restored_tabs.get('tab_contents-with-value'))
+        nested_soup = bs4.BeautifulSoup(tabs_data[0]['content'], 'html.parser')
+        restored_link = nested_soup.find('oppia-noninteractive-link')
+        self.assertIsNotNone(restored_link)
+        self.assertEqual(
+            restored_link.get('text-with-value'), json.dumps('Open lesson')
+        )
+
+    def test_postprocess_html_with_image_nested_in_workedexample(
+        self,
+    ) -> None:
+        soup = bs4.BeautifulSoup('', 'html.parser')
+        image = soup.new_tag('oppia-noninteractive-image')
+        image['filepath-with-value'] = 'image.png'
+        image['alt-with-value'] = json.dumps('A red car')
+        image['caption-with-value'] = json.dumps('Vehicle')
+        workedexample = soup.new_tag('oppia-noninteractive-workedexample')
+        workedexample['question-with-value'] = json.dumps('Question')
+        workedexample['answer-with-value'] = f'<p>{image}</p>'
+
+        protected = html_translation_services.preprocess_html_for_translation(
+            str(workedexample)
+        )
+        restored = html_translation_services.postprocess_translated_html(
+            protected
+        )
+
+        restored_soup = bs4.BeautifulSoup(restored, 'html.parser')
+        restored_workedexample = restored_soup.find(
+            'oppia-noninteractive-workedexample'
+        )
+        self.assertIsNotNone(restored_workedexample)
+        nested_content = restored_workedexample.get('answer-with-value')
+        nested_soup = bs4.BeautifulSoup(nested_content, 'html.parser')
+        restored_image = nested_soup.find('oppia-noninteractive-image')
+        self.assertIsNotNone(restored_image)
+        self.assertEqual(
+            restored_image.get('alt-with-value'), json.dumps('A red car')
+        )
+        self.assertEqual(
+            restored_image.get('caption-with-value'), json.dumps('Vehicle')
+        )
