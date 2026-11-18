@@ -27,6 +27,7 @@ from core.domain import (
     exp_fetchers,
     exp_services,
     feedback_services,
+    general_feedback_services,
     platform_parameter_list,
     rights_manager,
     stats_domain,
@@ -1293,6 +1294,81 @@ class TasksTests(test_utils.EmailTestBase):
                 mock_send_email,
             ):
                 self.process_and_flush_pending_tasks()
+
+
+class FeedbackSubmissionEmailHandlerTests(test_utils.EmailTestBase):
+    """Tests for the feedback submission email task handler."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.url = feconf.TASK_URL_FEEDBACK_SUBMISSION_EMAILS
+        self.csrf_token = self.get_new_csrf_token()
+        self.headers = {
+            'X-Appengine-QueueName': 'emails',
+            'X-Appengine-TaskName': 'None',
+            'X-AppEngine-Fake-Is-Admin': '1',
+        }
+
+    def test_sends_lesson_feedback_notification(self) -> None:
+        payload = {
+            'feedback_id': 'feedback_id',
+            'feedback_type': 'lesson',
+        }
+        mock_send_email = mock.Mock()
+        with self.swap(
+            general_feedback_services,
+            'send_feedback_submission_email_for_feedback',
+            mock_send_email,
+        ):
+            response = self.post_task(
+                self.url,
+                payload,
+                self.headers,
+                csrf_token=self.csrf_token,
+                expect_errors=False,
+                expected_status_int=200,
+            )
+
+        self.assertEqual(response.status_int, 200)
+        mock_send_email.assert_called_once_with('feedback_id', 'lesson')
+
+    def test_sends_platform_feedback_notification(self) -> None:
+        payload = {
+            'feedback_id': 'report_id',
+            'feedback_type': 'platform',
+        }
+        mock_send_email = mock.Mock()
+        with self.swap(
+            general_feedback_services,
+            'send_feedback_submission_email_for_feedback',
+            mock_send_email,
+        ):
+            response = self.post_task(
+                self.url,
+                payload,
+                self.headers,
+                csrf_token=self.csrf_token,
+                expect_errors=False,
+                expected_status_int=200,
+            )
+
+        self.assertEqual(response.status_int, 200)
+        mock_send_email.assert_called_once_with('report_id', 'platform')
+
+    def test_rejects_unsupported_feedback_type(self) -> None:
+        payload = {
+            'feedback_id': 'feedback_id',
+            'feedback_type': 'unsupported',
+        }
+        response = self.post_task(
+            self.url,
+            payload,
+            self.headers,
+            csrf_token=self.csrf_token,
+            expect_errors=True,
+            expected_status_int=400,
+        )
+        self.assertEqual(response.status_int, 400)
 
 
 class RetryEmailHandlerTests(test_utils.EmailTestBase):
