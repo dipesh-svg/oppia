@@ -28,6 +28,7 @@ from core.domain import (
     exp_fetchers,
     exp_services,
     feedback_services,
+    general_feedback_services,
     question_services,
     stats_services,
     suggestion_registry,
@@ -270,6 +271,37 @@ class FlagExplorationEmailHandler(
             )
             self.render_json({})
             return
+        self.render_json({})
+
+
+class FeedbackSubmissionEmailHandler(
+    base.BaseHandler[Dict[str, str], Dict[str, str]]
+):
+    """Sends an email notification for a newly submitted feedback item."""
+
+    URL_PATH_ARGS_SCHEMAS: Dict[str, str] = {}
+    HANDLER_ARGS_SCHEMAS = {
+        'POST': {
+            'feedback_id': {
+                'schema': {'type': 'basestring'},
+            },
+            'feedback_type': {
+                'schema': {
+                    'type': 'basestring',
+                    'choices': ['lesson', 'platform'],
+                },
+            },
+        }
+    }
+
+    @acl_decorators.can_perform_tasks_in_taskqueue
+    def post(self) -> None:
+        """Sends a feedback submission notification in the background."""
+        assert self.normalized_payload is not None
+        payload = self.normalized_payload
+        general_feedback_services.send_feedback_submission_email_for_feedback(
+            payload['feedback_id'], payload['feedback_type']
+        )
         self.render_json({})
 
 
