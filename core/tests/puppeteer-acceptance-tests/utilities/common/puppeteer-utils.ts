@@ -2500,8 +2500,10 @@ export class BaseUser {
    * Clicks on the button in the modal with the given title and action.
    * @param title - The title of the modal.
    * @param action - The action to click on the button in the modal.
-   * @param expectModalToClose - Whether to expect the modal to close after clicking the button.
-   * @param timeout - Maximum time to wait for the modal to close, in milliseconds.
+   * @param expectModalToClose - Whether to expect the modal to close after
+   *   clicking the button.
+   * @param timeout - Maximum time to wait for the modal to close, in
+   *   milliseconds.
    */
   async clickButtonInModal(
     title: string,
