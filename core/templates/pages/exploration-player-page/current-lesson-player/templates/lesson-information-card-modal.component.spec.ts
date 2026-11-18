@@ -51,9 +51,11 @@ import {UrlInterpolationService} from '../../../../domain/utilities/url-interpol
 import {RatingComputationService} from '../../../../components/ratings/rating-computation/rating-computation.service';
 import {CheckpointCelebrationUtilityService} from '../../services/checkpoint-celebration-utility.service';
 import {PlayerPositionService} from '../../services/player-position.service';
+import {CheckpointProgressService} from '../../services/checkpoint-progress.service';
 import {StateCard} from '../../../../domain/state_card/state-card.model';
 import {State} from '../../../../domain/state/state.model';
 import {ExplorationModeService} from '../../services/exploration-mode.service';
+import {ReplaySubject} from 'rxjs';
 
 @Pipe({name: 'truncateAndCapitalize'})
 class MockTruncateAndCapitalizePipe implements PipeTransform {
@@ -94,6 +96,7 @@ class MockCheckpointCelebrationUtilityService {
 }
 class MockPlayerPositionService {
   onActiveCardChanged = new EventEmitter<void>();
+  onLoadedMostRecentCheckpoint = new ReplaySubject<void>(1);
 
   private displayedCardIndex: number = 0;
 
@@ -156,6 +159,7 @@ describe('Lesson Information card modal component', () => {
   let ngbActiveModal: NgbActiveModal;
   let playerTranscriptService: PlayerTranscriptService;
   let explorationEngineService: ExplorationEngineService;
+  let checkpointProgressService: CheckpointProgressService;
   let explorationModeService: ExplorationModeService;
 
   let expId = 'expId';
@@ -180,6 +184,7 @@ describe('Lesson Information card modal component', () => {
         PlayerTranscriptService,
         PlayerPositionService,
         ExplorationEngineService,
+        CheckpointProgressService,
         DateTimeFormatService,
         RatingComputationService,
         UrlInterpolationService,
@@ -249,6 +254,7 @@ describe('Lesson Information card modal component', () => {
     playerTranscriptService = TestBed.inject(PlayerTranscriptService);
     playerPositionService = TestBed.inject(PlayerPositionService);
     explorationEngineService = TestBed.inject(ExplorationEngineService);
+    checkpointProgressService = TestBed.inject(CheckpointProgressService);
     progressUrlService = TestBed.inject(ProgressUrlService);
     checkpointCelebrationUtilityService = TestBed.inject(
       CheckpointCelebrationUtilityService
@@ -362,6 +368,35 @@ describe('Lesson Information card modal component', () => {
       'completed',
       'completed',
       'completed',
+    ]);
+  });
+
+  it('should refresh checkpoint progress after checkpoint loading completes', () => {
+    spyOn(checkpointProgressService, 'fetchCheckpointCount').and.returnValue(3);
+    spyOn(
+      checkpointProgressService,
+      'getMostRecentlyReachedCheckpointIndex'
+    ).and.returnValue(2);
+    spyOn(playerPositionService, 'getDisplayedCardIndex').and.returnValue(0);
+
+    componentInstance.checkpointCount = 3;
+    componentInstance.completedCheckpointsCount = 0;
+    componentInstance.ngOnInit();
+
+    expect(componentInstance.checkpointStatusArray).toEqual([
+      'in-progress',
+      'incomplete',
+      'incomplete',
+    ]);
+
+    (playerPositionService as MockPlayerPositionService)
+      .onLoadedMostRecentCheckpoint.next();
+
+    expect(componentInstance.completedCheckpointsCount).toBe(1);
+    expect(componentInstance.checkpointStatusArray).toEqual([
+      'completed',
+      'in-progress',
+      'incomplete',
     ]);
   });
 
