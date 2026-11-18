@@ -202,6 +202,8 @@ export class LessonInformationCardModalComponent
   }
 
   private refreshCheckpointProgress(): void {
+    this.checkpointCount =
+      this.checkpointProgressService.fetchCheckpointCount();
     this.completedCheckpointsCount =
       this.checkpointProgressService.getMostRecentlyReachedCheckpointIndex() -
       1;
