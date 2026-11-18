@@ -43,6 +43,8 @@ import {ExplorationEngineService} from '../../services/exploration-engine.servic
 import {CheckpointCelebrationUtilityService} from 'pages/exploration-player-page/services/checkpoint-celebration-utility.service';
 import {SiteAnalyticsService} from 'services/site-analytics.service';
 import {SignInEventService} from 'services/sign-in-event.service';
+import {Subscription} from 'rxjs';
+import {CheckpointProgressService} from '../../services/checkpoint-progress.service';
 
 interface ExplorationTagSummary {
   tagsToShow: string[];
@@ -92,6 +94,8 @@ export class LessonInformationCardModalComponent extends ConfirmOrCancelModal {
   userIsLoggedIn: boolean = false;
   lessonAuthorsSubmenuIsShown: boolean = false;
   saveProgressMenuIsShown: boolean = false;
+  private activeCardChangedSubscription: Subscription | null = null;
+  private loadedMostRecentCheckpointSubscription: Subscription | null = null;
 
   constructor(
     private ngbActiveModal: NgbActiveModal,
@@ -146,27 +150,21 @@ export class LessonInformationCardModalComponent extends ConfirmOrCancelModal {
         TranslationKeyType.DESCRIPTION
       );
 
-    // This array is used to keep track of the status of each checkpoint,
-    // i.e. whether it is completed, in-progress, or yet-to-be-completed by the
-    // learner. This information is then used to display the progress bar
-    // in the lesson info card.
-    this.checkpointStatusArray = new Array(this.checkpointCount);
-    for (let i = 0; i < this.completedCheckpointsCount; i++) {
-      this.checkpointStatusArray[i] = CHECKPOINT_STATUS_COMPLETED;
-    }
-    // If not all checkpoints are completed, then the checkpoint immediately
-    // following the last completed checkpoint is labeled 'in-progress'.
-    if (this.checkpointCount > this.completedCheckpointsCount) {
-      this.checkpointStatusArray[this.completedCheckpointsCount] =
-        CHECKPOINT_STATUS_IN_PROGRESS;
-    }
-    for (
-      let i = this.completedCheckpointsCount + 1;
-      i < this.checkpointCount;
-      i++
-    ) {
-      this.checkpointStatusArray[i] = CHECKPOINT_STATUS_INCOMPLETE;
-    }
+    this.updateCheckpointStatusArray();
+
+    // The lesson-info modal can be opened before checkpoint restoration has
+    // completed. ReplaySubject ensures this subscription also receives the
+    // completion event when restoration finishes before the modal opens.
+    this.loadedMostRecentCheckpointSubscription =
+      this.playerPositionService.onLoadedMostRecentCheckpoint.subscribe(() => {
+        this.refreshCheckpointProgress();
+      });
+
+    // Keep the modal in sync when the learner moves between cards.
+    this.activeCardChangedSubscription =
+      this.playerPositionService.onActiveCardChanged.subscribe(() => {
+        this.refreshCheckpointProgress();
+      });
     this.loggedOutProgressUniqueUrlId =
       this.progressUrlService.getUniqueProgressUrlId();
     if (this.loggedOutProgressUniqueUrlId) {
@@ -182,6 +180,66 @@ export class LessonInformationCardModalComponent extends ConfirmOrCancelModal {
           this.checkpointCount
         );
     }
+  }
+
+  private updateCheckpointStatusArray(): void {
+    this.completedCheckpointsCount = Math.min(
+      Math.max(0, this.completedCheckpointsCount),
+      this.checkpointCount
+    );
+    this.checkpointStatusArray = new Array(this.checkpointCount);
+    for (let i = 0; i < this.completedCheckpointsCount; i++) {
+      this.checkpointStatusArray[i] = CHECKPOINT_STATUS_COMPLETED;
+    }
+    if (this.checkpointCount > this.completedCheckpointsCount) {
+      this.checkpointStatusArray[this.completedCheckpointsCount] =
+        CHECKPOINT_STATUS_IN_PROGRESS;
+    }
+    for (
+      let i = this.completedCheckpointsCount + 1;
+      i < this.checkpointCount;
+      i++
+    ) {
+      this.checkpointStatusArray[i] = CHECKPOINT_STATUS_INCOMPLETE;
+    }
+  }
+
+  private refreshCheckpointProgress(): void {
+    this.checkpointCount =
+      this.checkpointProgressService.fetchCheckpointCount();
+    let completedCheckpointsCount =
+      this.checkpointProgressService.getMostRecentlyReachedCheckpointIndex() -
+      1;
+
+    const displayedCardIndex =
+      this.playerPositionService.getDisplayedCardIndex();
+    if (displayedCardIndex > 0) {
+      const state = this.explorationEngineService.getState();
+      const stateCard = this.explorationEngineService.getStateCardByName(
+        state.name ?? ''
+      );
+      if (stateCard.isTerminal()) {
+        completedCheckpointsCount += 1;
+      }
+    }
+
+    this.completedCheckpointsCount = completedCheckpointsCount;
+    this.updateCheckpointStatusArray();
+
+    if (this.checkpointCelebrationUtilityService.getIsOnCheckpointedState()) {
+      this.translatedCongratulatoryCheckpointMessage =
+        this.checkpointCelebrationUtilityService.getCheckpointMessage(
+          this.completedCheckpointsCount,
+          this.checkpointCount
+        );
+    } else {
+      this.translatedCongratulatoryCheckpointMessage = undefined;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.activeCardChangedSubscription?.unsubscribe();
+    this.loadedMostRecentCheckpointSubscription?.unsubscribe();
   }
 
   getCompletedProgressBarWidth(): number {
