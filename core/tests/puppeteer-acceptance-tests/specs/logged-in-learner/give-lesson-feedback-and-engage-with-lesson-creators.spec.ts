@@ -241,7 +241,9 @@ describe('Logged-in User', function () {
     showMessage('Sending feedback to the Lessons Team.');
     await loggedInLearner.clickButtonInModal(
       'Send Feedback to the Lessons Team',
-      'confirm'
+      'confirm',
+      true,
+      FEEDBACK_SUBMISSION_TIMEOUT_MSECS
     );
 
     await explorationEditor.navigateToCreatorDashboardPage();
