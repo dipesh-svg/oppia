@@ -260,7 +260,20 @@ def postprocess_translated_html(translated_html: str) -> str:
     # Collect tabs data separately since reconstruction requires all tabs.
     tabs_data: Dict[str, Dict[str, str]] = {}
 
-    for temp_tag in list(soup.find_all(attrs={_TEMP_DATA_ATTR_NAME: True})):
+    # Encoded HTML attributes are postprocessed recursively when their
+    # containing temporary element is restored. Exclude temporary elements
+    # inside those containers from this pass; otherwise decomposing the
+    # container also decomposes its descendants, leaving stale Tag objects
+    # in this snapshot and causing AttributeError when they are processed.
+    temp_tags = [
+        temp_tag
+        for temp_tag in soup.find_all(attrs={_TEMP_DATA_ATTR_NAME: True})
+        if temp_tag.find_parent(
+            attrs={_TEMP_DATA_IS_ENCODED: 'true'}
+        ) is None
+    ]
+
+    for temp_tag in temp_tags:
         comp_id = temp_tag.get(_TEMP_DATA_COMP_ID)
         attr_name = temp_tag.get(_TEMP_DATA_ATTR_NAME)
         is_encoded = temp_tag.get(_TEMP_DATA_IS_ENCODED) == 'true'
