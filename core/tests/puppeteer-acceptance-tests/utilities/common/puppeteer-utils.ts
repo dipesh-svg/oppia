@@ -1627,17 +1627,18 @@ export class BaseUser {
   async expectElementToBeVisible(
     selector: string,
     visibility: boolean = true,
-    context: Page = this.page
+    context: Page = this.page,
+    timeout: number = 30000
   ): Promise<void> {
     if (visibility) {
-      await context.waitForSelector(selector, {visible: true});
+      await context.waitForSelector(selector, {visible: true, timeout: timeout});
     } else {
       await context.waitForFunction(
         (sel: string) => {
           const el = document.querySelector(sel);
           return !el || (el as HTMLElement).offsetParent === null;
         },
-        {},
+        {timeout: timeout},
         selector
       );
     }
@@ -2503,7 +2504,8 @@ export class BaseUser {
   async clickButtonInModal(
     title: string,
     action: 'confirm' | 'cancel',
-    expectModalToClose: boolean = true
+    expectModalToClose: boolean = true,
+    timeout: number = 30000
   ): Promise<void> {
     await this.expectElementToBeVisible(commonModalTitleSelector);
     await this.expectTextContentToBe(commonModalTitleSelector, title);
@@ -2517,7 +2519,9 @@ export class BaseUser {
 
     await this.expectElementToBeVisible(
       currentActionBtnSelector,
-      !expectModalToClose
+      !expectModalToClose,
+      this.page,
+      timeout
     );
   }
 
