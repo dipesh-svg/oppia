@@ -17,7 +17,7 @@
  */
 
 import {Clipboard} from '@angular/cdk/clipboard';
-import {Component} from '@angular/core';
+import {Component, OnDestroy} from '@angular/core';
 import {NgbActiveModal} from '@ng-bootstrap/ng-bootstrap';
 import {ConfirmOrCancelModal} from 'components/common-layout-directives/common-elements/confirm-or-cancel-modal.component';
 import {StateCard} from 'domain/state_card/state-card.model';
@@ -43,6 +43,8 @@ import {ExplorationEngineService} from '../../services/exploration-engine.servic
 import {CheckpointCelebrationUtilityService} from 'pages/exploration-player-page/services/checkpoint-celebration-utility.service';
 import {SiteAnalyticsService} from 'services/site-analytics.service';
 import {SignInEventService} from 'services/sign-in-event.service';
+import {Subscription} from 'rxjs';
+import {CheckpointProgressService} from '../../services/checkpoint-progress.service';
 
 interface ExplorationTagSummary {
   tagsToShow: string[];
@@ -59,7 +61,10 @@ const EXPLORATION_STATUS_PRIVATE = 'private';
   templateUrl: './lesson-information-card-modal.component.html',
   styleUrls: ['./lesson-information-card-modal.component.css'],
 })
-export class LessonInformationCardModalComponent extends ConfirmOrCancelModal {
+export class LessonInformationCardModalComponent
+  extends ConfirmOrCancelModal
+  implements OnDestroy
+{
   // These properties below are initialized using Angular lifecycle hooks
   // where we need to do non-null assertion. For more information see
   // https://github.com/oppia/oppia/wiki/Guide-on-defining-types#ts-7-1
@@ -92,6 +97,7 @@ export class LessonInformationCardModalComponent extends ConfirmOrCancelModal {
   userIsLoggedIn: boolean = false;
   lessonAuthorsSubmenuIsShown: boolean = false;
   saveProgressMenuIsShown: boolean = false;
+  private directiveSubscriptions = new Subscription();
 
   constructor(
     private ngbActiveModal: NgbActiveModal,
@@ -104,6 +110,7 @@ export class LessonInformationCardModalComponent extends ConfirmOrCancelModal {
     private userService: UserService,
     private windowRef: WindowRef,
     private explorationEngineService: ExplorationEngineService,
+    private checkpointProgressService: CheckpointProgressService,
     private playerTranscriptService: PlayerTranscriptService,
     private localStorageService: LocalStorageService,
     private progressUrlService: ProgressUrlService,
@@ -150,23 +157,15 @@ export class LessonInformationCardModalComponent extends ConfirmOrCancelModal {
     // i.e. whether it is completed, in-progress, or yet-to-be-completed by the
     // learner. This information is then used to display the progress bar
     // in the lesson info card.
-    this.checkpointStatusArray = new Array(this.checkpointCount);
-    for (let i = 0; i < this.completedCheckpointsCount; i++) {
-      this.checkpointStatusArray[i] = CHECKPOINT_STATUS_COMPLETED;
-    }
-    // If not all checkpoints are completed, then the checkpoint immediately
-    // following the last completed checkpoint is labeled 'in-progress'.
-    if (this.checkpointCount > this.completedCheckpointsCount) {
-      this.checkpointStatusArray[this.completedCheckpointsCount] =
-        CHECKPOINT_STATUS_IN_PROGRESS;
-    }
-    for (
-      let i = this.completedCheckpointsCount + 1;
-      i < this.checkpointCount;
-      i++
-    ) {
-      this.checkpointStatusArray[i] = CHECKPOINT_STATUS_INCOMPLETE;
-    }
+    this.updateCheckpointStatusArray();
+
+    // Checkpoint restoration is asynchronous. ReplaySubject replays the
+    // restoration event if it was emitted before this modal was opened.
+    this.directiveSubscriptions.add(
+      this.playerPositionService.onLoadedMostRecentCheckpoint.subscribe(() => {
+        this.refreshCheckpointProgress();
+      })
+    );
     this.loggedOutProgressUniqueUrlId =
       this.progressUrlService.getUniqueProgressUrlId();
     if (this.loggedOutProgressUniqueUrlId) {
@@ -182,6 +181,58 @@ export class LessonInformationCardModalComponent extends ConfirmOrCancelModal {
           this.checkpointCount
         );
     }
+  }
+
+  private updateCheckpointStatusArray(): void {
+    this.checkpointStatusArray = new Array(this.checkpointCount);
+    for (let i = 0; i < this.completedCheckpointsCount; i++) {
+      this.checkpointStatusArray[i] = CHECKPOINT_STATUS_COMPLETED;
+    }
+    if (this.checkpointCount > this.completedCheckpointsCount) {
+      this.checkpointStatusArray[this.completedCheckpointsCount] =
+        CHECKPOINT_STATUS_IN_PROGRESS;
+    }
+    for (
+      let i = this.completedCheckpointsCount + 1;
+      i < this.checkpointCount;
+      i++
+    ) {
+      this.checkpointStatusArray[i] = CHECKPOINT_STATUS_INCOMPLETE;
+    }
+  }
+
+  private refreshCheckpointProgress(): void {
+    this.completedCheckpointsCount =
+      this.checkpointProgressService.getMostRecentlyReachedCheckpointIndex() -
+      1;
+
+    const displayedCardIndex =
+      this.playerPositionService.getDisplayedCardIndex();
+    if (displayedCardIndex > 0) {
+      const state = this.explorationEngineService.getState();
+      const stateCard = this.explorationEngineService.getStateCardByName(
+        state.name ?? ''
+      );
+      if (stateCard.isTerminal()) {
+        this.completedCheckpointsCount += 1;
+      }
+    }
+
+    this.updateCheckpointStatusArray();
+
+    if (this.checkpointCelebrationUtilityService.getIsOnCheckpointedState()) {
+      this.translatedCongratulatoryCheckpointMessage =
+        this.checkpointCelebrationUtilityService.getCheckpointMessage(
+          this.completedCheckpointsCount,
+          this.checkpointCount
+        );
+    } else {
+      this.translatedCongratulatoryCheckpointMessage = undefined;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.directiveSubscriptions.unsubscribe();
   }
 
   getCompletedProgressBarWidth(): number {
